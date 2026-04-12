@@ -1,11 +1,13 @@
 import sqlite3
 from flask import Flask, g, jsonify, abort, request
 from flask_cors import CORS
+from llm_service import LLMQueryService, LLMServiceError, SQLValidationError
 
 app = Flask(__name__)
 CORS(app)
 
 DB_PATH = 'movies.db'
+llm_query_service = LLMQueryService(db_path=DB_PATH)
 
 
 def get_db():
@@ -290,6 +292,66 @@ def get_actor_movies(actor_id):
         ) if movies else None,
         'movies': rows_to_list(movies)
     })
+
+
+@app.post('/api/query/nl')
+def query_natural_language():
+    """
+    POST /api/query/nl
+    Body:
+      {
+        "query": "top 5 sci-fi movies after 2010",
+        "strategy": "constrained"  # optional: zero-shot|few-shot|constrained
+      }
+    """
+    data = request.get_json(silent=True) or {}
+    query = (data.get('query') or '').strip()
+    strategy = (data.get('strategy') or 'constrained').strip()
+
+    if not query:
+        abort(400, description='query is required')
+
+    try:
+        result = llm_query_service.generate_nl2sql(query=query, strategy=strategy)
+        return jsonify(result)
+    except (LLMServiceError, SQLValidationError) as e:
+        return jsonify({
+            'error': str(e),
+            'query': query,
+            'strategy': strategy,
+            'results': [],
+            'result_count': 0,
+        }), 400
+
+
+@app.post('/api/recommend/nl')
+def recommend_natural_language():
+    """
+    POST /api/recommend/nl
+    Body:
+      {
+        "query": "Recommend emotional drama movies",
+        "strategy": "constrained"  # optional: zero-shot|few-shot|constrained
+      }
+    """
+    data = request.get_json(silent=True) or {}
+    query = (data.get('query') or '').strip()
+    strategy = (data.get('strategy') or 'constrained').strip()
+
+    if not query:
+        abort(400, description='query is required')
+
+    try:
+        result = llm_query_service.generate_recommendations(query=query, strategy=strategy)
+        return jsonify(result)
+    except (LLMServiceError, SQLValidationError) as e:
+        return jsonify({
+            'error': str(e),
+            'query': query,
+            'strategy': strategy,
+            'results': [],
+            'result_count': 0,
+        }), 400
 
 
 # 错误处理

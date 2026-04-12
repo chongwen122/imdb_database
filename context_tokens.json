@@ -1,0 +1,50 @@
+{
+  "project": "CSC3170 IMDb NL2SQL",
+  "dialect": "SQLite",
+  "tables": {
+    "Movie": [
+      "movie_id",
+      "title",
+      "year",
+      "certificate",
+      "runtime",
+      "imdb_rating",
+      "meta_score",
+      "votes",
+      "gross",
+      "overview",
+      "poster_link",
+      "director_id"
+    ],
+    "Director": ["director_id", "director_name"],
+    "Actor": ["actor_id", "actor_name"],
+    "Genre": ["genre_id", "genre"],
+    "Movie_Actor": ["movie_id", "actor_id"],
+    "Movie_Genre": ["movie_id", "genre_id"]
+  },
+  "foreign_keys": [
+    "Movie.director_id -> Director.director_id",
+    "Movie_Actor.movie_id -> Movie.movie_id",
+    "Movie_Actor.actor_id -> Actor.actor_id",
+    "Movie_Genre.movie_id -> Movie.movie_id",
+    "Movie_Genre.genre_id -> Genre.genre_id"
+  ],
+  "intent_rules": {
+    "highest_rating": "ORDER BY imdb_rating DESC, votes DESC",
+    "top_grossing": "ORDER BY gross DESC",
+    "most_collaboration": "GROUP BY entity HAVING/ORDER BY COUNT(*) DESC",
+    "average_above_threshold": "HAVING AVG(metric) > threshold"
+  },
+  "safe_defaults": {
+    "default_limit": 50,
+    "default_top_k": 10,
+    "read_only": true,
+    "single_statement": true
+  },
+  "sample_features": {
+    "rating_range": [0, 10],
+    "meta_score_range": [0, 100],
+    "gross_nullable": true,
+    "genre_multi_value_normalized": true
+  }
+}
